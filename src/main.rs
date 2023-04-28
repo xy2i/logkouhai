@@ -3,15 +3,21 @@ mod utils;
 
 use chrono::prelude::*;
 use dotenv::dotenv;
+use once_cell::sync::{Lazy, OnceCell};
 use poise::serenity_prelude::{self as serenity};
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
+use std::collections::HashMap;
 use std::env;
+use std::sync::Mutex;
 
 use crate::commands::log;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
+
+static VNDB_NAME_CACHE: Lazy<Mutex<HashMap<String, String>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug)]
 struct NukiLog {
@@ -21,6 +27,7 @@ struct NukiLog {
     comment: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct Data {
     db: SqlitePool,
 }

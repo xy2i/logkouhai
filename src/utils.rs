@@ -1,4 +1,9 @@
+use std::collections::{hash_map::Entry, HashMap};
+
 use chrono::{Days, Duration, Months, NaiveDateTime};
+use serde::Deserialize;
+
+use crate::VNDB_NAME_CACHE;
 
 pub fn week_start(dt: NaiveDateTime) -> NaiveDateTime {
     dt.checked_sub_days(Days::new(7)).unwrap()
@@ -24,10 +29,6 @@ fn parse_hour_min(s: &str) -> Result<Duration, &str> {
     let Ok(hours) = hours.parse::<usize>() else {
         return Err("parsing hour component failed")
     };
-
-    if hours >= 24 {
-        return Err("hours greater than 24");
-    }
 
     if !found_colon {
         return Err("colon `:` not found");
@@ -89,13 +90,47 @@ Tried `[min]` format, but {parsed_min_err}."
 }
 
 pub fn fmt_duration(d: chrono::Duration) -> String {
-    let mut s = String::new();
     let h = d.num_hours();
-    if h > 0 {
-        s += &format!("{h}:");
+    let m = d.num_minutes() % 60;
+    format!("{h}:{m:0>2}")
+}
+
+pub fn get_vn_name(s: String) -> String {
+    #[derive(Deserialize)]
+    struct VndbResponse {
+        results: Vec<Info>,
     }
 
-    let m = d.num_minutes() % 60;
-    s += &format!("{m:0>2}");
-    s
+    #[derive(Deserialize)]
+    struct Info {
+        id: String,
+        title: String,
+    }
+
+    if !s.starts_with('v') {
+        return s;
+    }
+
+    let mut cache = VNDB_NAME_CACHE.lock().unwrap();
+
+    match cache.entry(s.clone()) {
+        Entry::Vacant(entry) => {
+            let resp = ureq::post("https://api.vndb.org/kana/vn").send_json(ureq::json!({
+                "filters": ["id", "=", s],
+                "fields": "title",
+            }));
+
+            let Ok(resp) = resp else { return s };
+
+            let data: VndbResponse = resp.into_json().unwrap();
+            let Some(info) = data.results.get(0) else { return s };
+
+            format!(
+                "{} (https://vndb.org/{})",
+                entry.insert(info.title.clone()).to_string(),
+                s
+            )
+        }
+        Entry::Occupied(o) => format!("{} (https://vndb.org/{})", o.get().clone(), s),
+    }
 }

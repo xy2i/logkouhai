@@ -2,7 +2,7 @@ use chrono::{Duration, NaiveDate, NaiveTime, Utc};
 use sqlx::query;
 
 use crate::{
-    utils::{fmt_duration, parse_date},
+    utils::{fmt_duration, get_vn_name, parse_date},
     Context, Error,
 };
 
@@ -13,7 +13,7 @@ pub async fn vn(
     #[description = "Amount of characters read"] chars: u32,
     #[description = "Time you've read for, in `[hr:min]` or `[min]` format. Example: `1:28`, `54`"]
     time: Option<String>,
-    #[description = "Name of the VN. You can group your logs in other commands, like /vn read [vn-name]"]
+    #[description = "Name of the VN. You can also use a vndb ID, like v17, which you can find in the vndb URL"]
     name: Option<String>,
     #[description = "Comment"] comment: Option<String>,
     #[description = "Backlog to this date: format year-month-day. Example: `2023-01-14`"]
@@ -36,9 +36,7 @@ pub async fn vn(
         None => None,
     }
     .map(|duration| duration.num_minutes());
-    println!("{time:?}");
-
-    query!(
+    &query!(
         r#"insert into log(uid, timestamp, type, count, name, time, comment)
         values(?,?,?,?,?,?,?)"#,
         id,
@@ -71,7 +69,7 @@ pub async fn vn(
         ))
     }
     if let Some(name) = name {
-        res.push(format!(" on **{}**", name));
+        res.push(format!(" on **{}**", get_vn_name(name)));
     }
     res.push(format!("."));
 

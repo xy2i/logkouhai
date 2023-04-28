@@ -1,12 +1,15 @@
+use std::collections::HashMap;
+
 use chrono::{Duration, NaiveDateTime, Utc};
 use poise::serenity_prelude::{self as serenity};
 use sqlx::query_as;
 
 use crate::{
-    utils::{fmt_duration, week_start},
+    utils::{fmt_duration, get_vn_name, week_start},
     Context, Error,
 };
 
+#[derive(Debug)]
 struct Log {
     uid: String,
     timestamp: NaiveDateTime,
@@ -28,7 +31,7 @@ pub async fn info(
     let u = user.as_ref().unwrap_or_else(|| ctx.author());
     let uid = u.id.0.to_string();
 
-    let logs = if let Some(vn) = vn.clone() {
+    let logs: Vec<Log> = if let Some(vn) = vn.clone() {
         query_as!(
         Log,
         r#"select uid, timestamp, count, name, time, comment from log where uid=? and name=? order by timestamp desc"#,
@@ -72,7 +75,7 @@ pub async fn info(
     let mut s = String::new();
     s += &format!("**Stats for <@{uid}>**");
     if let Some(vn) = vn.clone() {
-        s += &format!(" for vn **{vn}**");
+        s += &format!(" for vn **{}**", get_vn_name(vn));
     }
     s += &format!(
         "
@@ -82,6 +85,28 @@ Logged **{weekly_count}** characters in **{}** hours.",
         fmt_duration(time),
         fmt_duration(weekly_time),
     );
+
+    let last_logs = logs.iter().take(5);
+    if last_logs.len() != 0 {
+        s += "\n**Last few logs:\n**";
+        for log in logs.into_iter().take(5) {
+            s += &format!(
+                "<t:{}:R> **{} chars**",
+                log.timestamp.timestamp(),
+                log.count
+            );
+
+            if let Some(hours) = log.time {
+                s += &format!(" for **{}** hours", fmt_duration(Duration::minutes(hours)));
+            }
+
+            if let Some(name) = log.name {
+                s += &format!(" of **{}**", get_vn_name(name));
+            }
+
+            s += ".\n";
+        }
+    }
 
     ctx.send(|f| f.embed(|f: &mut serenity::CreateEmbed| f.title("").description(s)))
         .await?;
