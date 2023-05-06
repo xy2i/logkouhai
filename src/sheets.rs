@@ -1,4 +1,4 @@
-use crate::utils::get_xelieu_tab_name;
+use crate::utils::{fmt_duration, get_xelieu_tab_name};
 use crate::{Context, Error};
 use anyhow::anyhow;
 use chrono::{Duration, NaiveDateTime};
@@ -28,7 +28,7 @@ async fn present_user_url(
         //ChannelId(1097207605744631901)
         .send_message(ctx, |m| {
             m.content(format!(
-                "Please go to [this page]({url}) and follow the instructions displayed there."
+                "Please go to {url} and follow the instructions displayed there."
             ))
         })
         .await
@@ -113,7 +113,7 @@ pub async fn get_token(ctx: Context<'_>) -> Result<(), Error> {
 
     let auth = InstalledFlowAuthenticator::builder(
         secret,
-        InstalledFlowReturnMethod::HTTPPortRedirect(8000),
+        InstalledFlowReturnMethod::HTTPPortRedirect(8080),
     )
     .flow_delegate(Box::new(MyFlowDelegate(Arc::new(
         ctx.serenity_context().clone(),
@@ -150,7 +150,7 @@ pub async fn log_to_sheets(
 
     let auth = InstalledFlowAuthenticator::builder(
         secret,
-        InstalledFlowReturnMethod::HTTPPortRedirect(8000),
+        InstalledFlowReturnMethod::HTTPPortRedirect(8080),
     )
     .flow_delegate(Box::new(MyFlowDelegate(Arc::new(
         ctx.serenity_context().clone(),
@@ -180,7 +180,7 @@ pub async fn log_to_sheets(
             json!(""),
             json!(log.time.map(|v| {
                 let d = Duration::minutes(v);
-                format!("{}:{}:00", d.num_hours(), d.num_minutes())
+                format!("{}:{}:00", d.num_hours(), d.num_minutes() % 60)
             })),
         ]]),
     };
