@@ -32,7 +32,7 @@ pub async fn export(ctx: Context<'_>) -> Result<(), Error> {
         r#"select timestamp, count, name, time, comment from log where uid=? order by timestamp desc"#,
         uid
     )
-    .fetch_all(&ctx.data().db)
+    .fetch_all(ctx.data().db.as_ref())
     .await?
     .into_iter()
     .map(|v| LogDate {

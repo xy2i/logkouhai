@@ -1,16 +1,12 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::hash_map::Entry;
 
-use chrono::{Days, Duration, Months, NaiveDateTime};
+use chrono::{Datelike, Days, Duration, NaiveDateTime};
 use serde::Deserialize;
 
 use crate::VNDB_NAME_CACHE;
 
 pub fn week_start(dt: NaiveDateTime) -> NaiveDateTime {
     dt.checked_sub_days(Days::new(7)).unwrap()
-}
-
-pub fn month_start(dt: NaiveDateTime) -> NaiveDateTime {
-    dt.checked_sub_months(Months::new(1)).unwrap()
 }
 
 fn parse_hour_min(s: &str) -> Result<Duration, &str> {
@@ -95,6 +91,29 @@ pub fn fmt_duration(d: chrono::Duration) -> String {
     format!("{h}:{m:0>2}")
 }
 
+pub fn get_xelieu_tab_name(dt: NaiveDateTime) -> String {
+    let month = dt.month();
+    let year = dt.year();
+
+    let month = match month {
+        1 => "Jan",
+        2 => "Feb",
+        3 => "Mar",
+        4 => "Apr",
+        5 => "May",
+        6 => "Jun",
+        7 => "Jul",
+        8 => "Aug",
+        9 => "Sep",
+        10 => "Oct",
+        11 => "Nov",
+        12 => "Dec",
+        _ => "",
+    };
+
+    format!("{month}-{year}")
+}
+
 pub fn get_vn_name(s: String) -> String {
     #[derive(Deserialize)]
     struct VndbResponse {
@@ -103,7 +122,7 @@ pub fn get_vn_name(s: String) -> String {
 
     #[derive(Deserialize)]
     struct Info {
-        id: String,
+        _id: String,
         title: String,
     }
 
@@ -126,11 +145,30 @@ pub fn get_vn_name(s: String) -> String {
             let Some(info) = data.results.get(0) else { return s };
 
             format!(
-                "{} (https://vndb.org/{})",
+                "[{}](https://vndb.org/{})",
                 entry.insert(info.title.clone()).to_string(),
                 s
             )
         }
-        Entry::Occupied(o) => format!("{} (https://vndb.org/{})", o.get().clone(), s),
+        Entry::Occupied(o) => format!("[{}](https://vndb.org/{})", o.get().clone(), s),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn xelieu_test() {
+        assert_eq!(
+            get_xelieu_tab_name(
+                NaiveDate::from_ymd_opt(2023, 5, 6)
+                    .unwrap()
+                    .and_hms_opt(9, 10, 11)
+                    .unwrap()
+            ),
+            "May-2023"
+        );
     }
 }

@@ -2,6 +2,7 @@ use chrono::{Duration, NaiveDate, NaiveTime, Utc};
 use sqlx::query;
 
 use crate::{
+    sheets::{log_to_sheets, SheetsLog},
     utils::{fmt_duration, get_vn_name, parse_date},
     Context, Error,
 };
@@ -36,7 +37,8 @@ pub async fn vn(
         None => None,
     }
     .map(|duration| duration.num_minutes());
-    &query!(
+
+    query!(
         r#"insert into log(uid, timestamp, type, count, name, time, comment)
         values(?,?,?,?,?,?,?)"#,
         id,
@@ -47,12 +49,33 @@ pub async fn vn(
         time,
         comment,
     )
-    .execute(&ctx.data().db)
+    .execute(ctx.data().db.as_ref())
     .await?;
+
+    // Try logging to google sheets
+    let spreadsheet_id = query!("select spreadsheet_id from sheets_id where uid=?", id,)
+        .fetch_optional(ctx.data().db.as_ref())
+        .await?;
+    let logged_to_sheet = if let Some(row) = spreadsheet_id {
+        log_to_sheets(
+            ctx,
+            row.spreadsheet_id,
+            SheetsLog {
+                date: logged_date,
+                name: name.clone(),
+                chars,
+                time,
+            },
+        )
+        .await?;
+        true
+    } else {
+        false
+    };
 
     let mut res = vec![];
     res.push(format!("<@{id}>"));
-    if let Some(_) = date {
+    if date.is_some() {
         res.push(format!(
             " back-logged (at <t:{}:R>)",
             logged_date.timestamp()
@@ -72,6 +95,10 @@ pub async fn vn(
         res.push(format!(" on **{}**", get_vn_name(name)));
     }
     res.push(format!("."));
+
+    if logged_to_sheet {
+        res.push(" *sheets OK*".to_string())
+    }
 
     if let Some(comment) = comment {
         res.push(format!("\n> {comment}"));

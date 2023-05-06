@@ -1,15 +1,15 @@
 mod commands;
 mod utils;
+mod sheets;
 
-use chrono::prelude::*;
 use dotenv::dotenv;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 use poise::serenity_prelude::{self as serenity};
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 use std::env;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::commands::log;
 
@@ -20,16 +20,8 @@ static VNDB_NAME_CACHE: Lazy<Mutex<HashMap<String, String>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug)]
-struct NukiLog {
-    discord_uid: String,
-    count: i64,
-    timestamp: NaiveDateTime,
-    comment: Option<String>,
-}
-
-#[derive(Debug)]
 pub struct Data {
-    db: SqlitePool,
+    db: Arc<SqlitePool>,
 }
 
 #[tokio::main]
@@ -51,7 +43,7 @@ async fn main() {
         .await
         .expect("Couldn't run database migrations");
 
-    let bot = Data { db };
+    let bot = Data { db: Arc::new(db) };
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {

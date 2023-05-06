@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use chrono::{Duration, NaiveDateTime, Utc};
-use poise::serenity_prelude::{self as serenity};
+use poise::serenity_prelude as serenity;
 use sqlx::query_as;
 
 use crate::{
@@ -10,7 +8,8 @@ use crate::{
 };
 
 #[derive(Debug)]
-struct Log {
+#[allow(unused)]
+pub struct Log {
     uid: String,
     timestamp: NaiveDateTime,
     count: i64,
@@ -36,14 +35,14 @@ pub async fn info(
         Log,
         r#"select uid, timestamp, count, name, time, comment from log where uid=? and name=? order by timestamp desc"#,
         uid, vn)
-    .fetch_all(&ctx.data().db)
+    .fetch_all(ctx.data().db.as_ref())
     .await?
     } else {
         query_as!(
         Log,
         r#"select uid, timestamp, count, name, time, comment from log where uid=? order by timestamp desc"#,
         uid)
-    .fetch_all(&ctx.data().db)
+    .fetch_all(ctx.data().db.as_ref())
     .await?
     };
 

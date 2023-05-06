@@ -13,7 +13,7 @@ pub async fn undo(ctx: Context<'_>) -> Result<(), Error> {
         uid,
         uid
     )
-    .execute(&ctx.data().db)
+    .execute(ctx.data().db.as_ref())
     .await?;
 
     ctx.say("Undo sucessful.").await?;
