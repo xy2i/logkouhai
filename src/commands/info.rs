@@ -74,7 +74,11 @@ pub async fn info(
     let mut s = String::new();
     s += &format!("**Stats for <@{uid}>**");
     if let Some(vn) = vn.clone() {
-        s += &format!(" for vn **[{}]({})**", get_vn_name(vn.clone()), vn.clone());
+        s += &format!(
+            " for vn **[{}](https://vndb.org/{})**",
+            get_vn_name(vn.clone()),
+            vn.clone()
+        );
     }
     s += &format!(
         "
@@ -100,7 +104,11 @@ Logged **{weekly_count}** characters in **{}** hours.",
             }
 
             if let Some(name) = log.name {
-                s += &format!(" of **[{}]({})**", get_vn_name(name.clone()), name.clone());
+                s += &format!(
+                    " of **[{}](https://vndb.org/{})**",
+                    get_vn_name(name.clone()),
+                    name.clone()
+                );
             }
 
             s += ".\n";

@@ -93,7 +93,7 @@ pub async fn vn(
     }
     if let Some(name) = name {
         res.push(format!(
-            " on **[{}]({})**",
+            " on **[{}](https://vndb.org/{})**",
             get_vn_name(name.clone()),
             name.clone()
         ));

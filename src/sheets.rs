@@ -132,7 +132,8 @@ pub async fn get_token(ctx: Context<'_>) -> Result<(), Error> {
     .await
     .unwrap();
 
-    auth.token(&["https://www.googleapis.com/auth/spreadsheets"])
+    let _token = auth
+        .token(&["https://www.googleapis.com/auth/spreadsheets"])
         .await?;
 
     Ok(())
@@ -208,14 +209,11 @@ pub async fn log_to_sheets(
         auth,
     );
 
-    let res = hub
-        .spreadsheets()
+    hub.spreadsheets()
         .values_append(req, &spreadsheet_id, &range)
         .value_input_option("USER_ENTERED")
         .doit()
-        .await;
+        .await?;
 
-    println!("[res:?]");
-    res?;
     Ok(())
 }
