@@ -120,9 +120,10 @@ pub fn get_vn_name(s: String) -> String {
         results: Vec<Info>,
     }
 
+    #[allow(unused)]
     #[derive(Deserialize)]
     struct Info {
-        _id: String,
+        id: String,
         title: String,
     }
 
@@ -143,14 +144,9 @@ pub fn get_vn_name(s: String) -> String {
 
             let data: VndbResponse = resp.into_json().unwrap();
             let Some(info) = data.results.get(0) else { return s };
-
-            format!(
-                "[{}](https://vndb.org/{})",
-                entry.insert(info.title.clone()).to_string(),
-                s
-            )
+            entry.insert(info.title.clone()).to_string()
         }
-        Entry::Occupied(o) => format!("[{}](https://vndb.org/{})", o.get().clone(), s),
+        Entry::Occupied(o) => o.get().clone(),
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::utils::{fmt_duration, get_xelieu_tab_name};
+use crate::utils::{get_vn_name, get_xelieu_tab_name};
 use crate::{Context, Error};
 use anyhow::anyhow;
 use chrono::{Duration, NaiveDateTime};
@@ -15,7 +15,9 @@ use sqlx::types::time::OffsetDateTime;
 use sqlx::{query, query_as, SqlitePool};
 use std::sync::Arc;
 
-//const REDIRECT_URL: &str = "https://tolocalhost.com";
+#[cfg(debug_assertions)]
+const REDIRECT_URL: &str = "https://tolocalhost.com";
+#[cfg(not(debug_assertions))]
 const REDIRECT_URL: &str = "https://mx.xy2.dev";
 
 struct MyFlowDelegate(Arc<serenity::Context>);
@@ -24,8 +26,12 @@ async fn present_user_url(
     _need_code: bool,
     ctx: &serenity::Context,
 ) -> Result<String, String> {
-    ChannelId(1090757758699192430)
-        //ChannelId(1097207605744631901)
+    #[cfg(debug_assertions)]
+    let channel = ChannelId(1097207605744631901);
+    #[cfg(not(debug_assertions))]
+    let channel = ChannelId(1090757758699192430);
+
+    channel
         .send_message(ctx, |m| {
             m.content(format!(
                 "Please go to {url} and follow the instructions displayed there."
@@ -173,15 +179,18 @@ pub async fn log_to_sheets(
         range: Some(range.clone()),
         values: Some(vec![vec![
             json!(format!("{}", log.date.format("%Y-%m-%d"))),
-            json!(log.name),
+            json!(log.name.map(get_vn_name).unwrap_or("".to_string())),
             json!("Visual Novel"),
             json!(log.chars),
             json!(""),
             json!(""),
-            json!(log.time.map(|v| {
-                let d = Duration::minutes(v);
-                format!("{}:{}:00", d.num_hours(), d.num_minutes() % 60)
-            })),
+            json!(log
+                .time
+                .map(|v| {
+                    let d = Duration::minutes(v);
+                    format!("{}:{}:00", d.num_hours(), d.num_minutes() % 60)
+                })
+                .unwrap_or("".to_string())),
         ]]),
     };
 
@@ -199,11 +208,14 @@ pub async fn log_to_sheets(
         auth,
     );
 
-    hub.spreadsheets()
+    let res = hub
+        .spreadsheets()
         .values_append(req, &spreadsheet_id, &range)
         .value_input_option("USER_ENTERED")
         .doit()
-        .await?;
+        .await;
 
+    println!("[res:?]");
+    res?;
     Ok(())
 }

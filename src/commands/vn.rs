@@ -92,7 +92,11 @@ pub async fn vn(
         ))
     }
     if let Some(name) = name {
-        res.push(format!(" on **{}**", get_vn_name(name)));
+        res.push(format!(
+            " on **[{}]({})**",
+            get_vn_name(name.clone()),
+            name.clone()
+        ));
     }
     res.push(format!("."));
 

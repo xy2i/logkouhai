@@ -1,6 +1,6 @@
 mod commands;
-mod utils;
 mod sheets;
+mod utils;
 
 use dotenv::dotenv;
 use once_cell::sync::Lazy;
@@ -26,6 +26,9 @@ pub struct Data {
 
 #[tokio::main]
 async fn main() {
+    #[cfg(debug_assertions)]
+    println!("debug mode");
+
     dotenv().ok();
 
     let db = SqlitePoolOptions::new()
